@@ -1,0 +1,311 @@
+<template>
+  <div class="auth-page">
+    <div class="auth-left">
+      <div class="auth-logo" @click="goHome">
+        <img src="/Frame 11.png" alt="Logo" class="logo-img">
+        <span class="logo-text">Play <span class="text-cyan">'N</span> Ride</span>
+      </div>
+      <div class="illustration-container">
+        <img src="/auth-illustration.png" alt="Seniors faisant du vélo" class="auth-illustration">
+      </div>
+    </div>
+
+    <div class="auth-right">
+      <div class="auth-form-container">
+        <button class="back-btn" @click="goHome">‹ Retour à l'accueil</button>
+
+        <transition name="fade" mode="out-in">
+          <div v-if="isLogin" key="login" class="form-wrapper">
+            <h2>Connexion</h2>
+            <p class="auth-subtitle">Si vous êtes déjà membre, vous pouvez vous connecter avec votre adresse mail.</p>
+            
+            <form @submit.prevent="submitForm">
+              <div class="input-group">
+                <label>Adresse Mail</label>
+                <input type="email" v-model="loginEmail" placeholder="jean.patient@email.com" required>
+              </div>
+              <div class="input-group">
+                <label>Mot de passe</label>
+                <input type="password" placeholder="••••••••" required>
+              </div>
+
+              <div class="checkbox-group">
+                <label class="custom-checkbox">
+                  <input type="checkbox">
+                  <span class="checkmark"></span>
+                  Se souvenir de moi
+                </label>
+                <label class="custom-checkbox">
+                  <input type="checkbox">
+                  <span class="checkmark"></span>
+                  Sauvegarder mes progrès
+                </label>
+                <label class="custom-checkbox">
+                  <input type="checkbox" required>
+                  <span class="checkmark"></span>
+                  Lire et accepter les <a href="#" class="text-cyan">conditions générales</a>
+                </label>
+              </div>
+
+              <button type="submit" class="btn-gradient">Se connecter</button>
+            </form>
+
+            <p class="toggle-text">
+              Pas encore de compte ? 
+              <span class="toggle-link" @click="isLogin = false">Créer un compte</span>
+            </p>
+          </div>
+
+          <div v-else key="signup" class="form-wrapper">
+            <h2>Inscription</h2>
+            <p class="auth-subtitle">Créez votre compte pour commencer votre rééducation ludique.</p>
+
+            <form @submit.prevent="submitForm">
+              <div class="input-group">
+                <label>Nom et Prénom</label>
+                <input type="text" placeholder="Jean Dupont" required>
+              </div>
+              <div class="input-group">
+                <label>Adresse Mail</label>
+                <input type="email" placeholder="jean.dupont@email.com" required>
+              </div>
+              
+              <div class="input-row">
+                <div class="input-group">
+                  <label>Sexe</label>
+                  <select required>
+                    <option value="" disabled selected>Sélectionner...</option>
+                    <option value="H">Homme</option>
+                    <option value="F">Femme</option>
+                    <option value="A">Autre</option>
+                  </select>
+                </div>
+                <div class="input-group">
+                  <label>Statut</label>
+                  <select required>
+                    <option value="" disabled selected>Sélectionner...</option>
+                    <option value="patient">Patient à domicile</option>
+                    <option value="pro">Professionnel de santé</option>
+                    <option value="ehpad">Structure (EHPAD, etc.)</option>
+                  </select>
+                </div>
+              </div>
+
+              <button type="submit" class="btn-gradient">Continuer</button>
+            </form>
+
+            <p class="toggle-text">
+              Déjà un compte ? 
+              <span class="toggle-link" @click="isLogin = true">Se connecter</span>
+            </p>
+          </div>
+        </transition>
+      </div>
+    </div>
+
+    <div class="popup-overlay" :class="{ active: showPopup }">
+      <div class="popup-content">
+        <div class="popup-icon">
+          <span v-if="userRole === 'Professionnel de Santé'">🩺</span>
+          <span v-else>🏠</span>
+        </div>
+        <h3>Connexion réussie !</h3>
+        <p class="popup-text">Vous êtes identifié(e) en tant que :<br><strong class="text-cyan">{{ userRole }}</strong></p>
+        
+        <button class="btn-gradient" @click="goToDashboard">Accéder à mon espace</button>
+      </div>
+    </div>
+
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+const isLogin = ref(true)
+
+// Variables pour lire le mail et gérer la popup
+const loginEmail = ref('')
+const showPopup = ref(false)
+const userRole = ref('')
+
+const goHome = () => {
+  router.push('/')
+}
+
+const submitForm = () => {
+  if (isLogin.value) {
+    // 1. On analyse l'adresse mail en minuscules
+    const emailToTest = loginEmail.value.toLowerCase()
+    
+    // 2. Conditions pour déterminer le rôle
+    if (emailToTest.includes('pro')) {
+      userRole.value = 'Professionnel de Santé'
+    } else if (emailToTest.includes('patient')) {
+      userRole.value = 'Patient'
+    } else {
+      userRole.value = 'Patient' // Rôle par défaut
+    }
+    
+    // 3. On affiche la Popup
+    showPopup.value = true
+
+  } else {
+    alert("Inscription réussie ! (Simulation)")
+    isLogin.value = true // Ramène à la connexion après inscription
+  }
+}
+
+// REDIRECTION MODIFIÉE ICI :
+const goToDashboard = () => {
+  showPopup.value = false
+  if (userRole.value === 'Patient') {
+    // Redirige vers le tableau de bord patient
+    router.push('/patient-dashboard')
+  } else {
+    // Le tableau de bord Pro n'existe pas encore, on met une alerte
+    alert("Le tableau de bord Pro sera créé à la prochaine étape !")
+  }
+}
+</script>
+
+<style scoped>
+.auth-page {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  font-family: 'Nunito', sans-serif;
+  background-color: #ffffff;
+}
+
+.auth-left {
+  flex: 1;
+  background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);
+  display: flex;
+  flex-direction: column;
+  padding: 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  z-index: 10;
+}
+.logo-img { height: 40px; }
+.logo-text { font-size: 1.5rem; font-weight: 900; color: #0A192F; }
+.text-cyan { color: #00B8D9; }
+
+.illustration-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.auth-illustration {
+  max-width: 90%;
+  max-height: 80%;
+  object-fit: contain;
+  filter: drop-shadow(0 20px 30px rgba(0,0,0,0.1));
+}
+
+.auth-right {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  overflow-y: auto;
+}
+
+.auth-form-container {
+  width: 100%;
+  max-width: 450px;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: #6B7C93;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 30px;
+  font-size: 1rem;
+  transition: color 0.3s;
+}
+.back-btn:hover { color: #0A192F; }
+
+h2 { font-size: 2.5rem; color: #0A192F; margin-bottom: 10px; font-weight: 800; }
+.auth-subtitle { color: #6B7C93; margin-bottom: 40px; line-height: 1.5; }
+
+.input-group { margin-bottom: 20px; width: 100%; }
+.input-row { display: flex; gap: 20px; }
+
+label { display: block; font-size: 0.9rem; font-weight: 700; color: #0A192F; margin-bottom: 8px; }
+
+input[type="text"], input[type="email"], input[type="password"], select {
+  width: 100%; padding: 14px 16px; border: 2px solid #E2E8F0; border-radius: 12px;
+  font-size: 1rem; font-family: inherit; transition: all 0.3s; background-color: #F8FAFC;
+}
+input:focus, select:focus {
+  outline: none; border-color: #00B8D9; background-color: white; box-shadow: 0 0 0 4px rgba(0, 184, 217, 0.1);
+}
+
+.checkbox-group { margin-bottom: 30px; }
+.custom-checkbox {
+  display: flex; align-items: center; gap: 10px; font-weight: 500; color: #6B7C93;
+  font-size: 0.9rem; margin-bottom: 12px; cursor: pointer;
+}
+.custom-checkbox input { width: 18px; height: 18px; cursor: pointer; }
+.custom-checkbox a { text-decoration: none; font-weight: 700; }
+
+.btn-gradient {
+  width: 100%; padding: 16px; background: linear-gradient(to right, #7DE2D1, #89D4E6);
+  color: #0A192F; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 800;
+  cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; margin-bottom: 20px;
+}
+.btn-gradient:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(125, 226, 209, 0.3); }
+
+.toggle-text { text-align: center; color: #6B7C93; font-size: 0.95rem; }
+.toggle-link { color: #00B8D9; font-weight: 800; cursor: pointer; margin-left: 5px; }
+.toggle-link:hover { text-decoration: underline; }
+
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease, transform 0.3s ease; }
+.fade-enter-from { opacity: 0; transform: translateY(10px); }
+.fade-leave-to { opacity: 0; transform: translateY(-10px); }
+
+/* ================= STYLES DE LA POPUP ================= */
+.popup-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(10,25,47,0.8);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 1000;
+  opacity: 0; visibility: hidden; transition: 0.3s;
+}
+.popup-overlay.active { opacity: 1; visibility: visible; }
+
+.popup-content {
+  background: white; padding: 40px; border-radius: 24px;
+  max-width: 400px; width: 90%; text-align: center;
+  transform: translateY(30px); transition: 0.3s;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+}
+.popup-overlay.active .popup-content { transform: translateY(0); }
+
+.popup-icon { font-size: 4rem; margin-bottom: 10px; }
+.popup-content h3 { font-size: 1.8rem; color: #0A192F; margin-bottom: 15px; }
+.popup-text { font-size: 1.1rem; color: #6B7C93; margin-bottom: 30px; line-height: 1.5; }
+.popup-text strong { font-size: 1.3rem; display: inline-block; margin-top: 5px; }
+
+@media (max-width: 900px) {
+  .auth-left { display: none; }
+  .auth-right { padding: 20px; }
+  .input-row { flex-direction: column; gap: 0; }
+}
+</style>
