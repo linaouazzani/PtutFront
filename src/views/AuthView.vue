@@ -26,7 +26,7 @@
               </div>
               <div class="input-group">
                 <label>Mot de passe</label>
-                <input type="password" placeholder="••••••••" required>
+                <input type="password" v-model="loginPassword" placeholder="••••••••" required>
               </div>
 
               <div class="checkbox-group">
@@ -63,17 +63,21 @@
             <form @submit.prevent="submitForm">
               <div class="input-group">
                 <label>Nom et Prénom</label>
-                <input type="text" placeholder="Jean Dupont" required>
+                <input type="text" v-model="registerNom" placeholder="Jean Dupont" required>
               </div>
               <div class="input-group">
                 <label>Adresse Mail</label>
-                <input type="email" placeholder="jean.dupont@email.com" required>
+                <input type="email" v-model="registerEmail" placeholder="jean.dupont@email.com" required>
+              </div>
+              <div class="input-group">
+                <label>Mot de passe</label>
+                <input type="password" v-model="registerPassword" placeholder="••••••••" required>
               </div>
               
               <div class="input-row">
                 <div class="input-group">
                   <label>Sexe</label>
-                  <select required>
+                  <select v-model="registerSexe" required>
                     <option value="" disabled selected>Sélectionner...</option>
                     <option value="H">Homme</option>
                     <option value="F">Femme</option>
@@ -82,11 +86,10 @@
                 </div>
                 <div class="input-group">
                   <label>Statut</label>
-                  <select required>
+                  <select v-model="registerStatut" required>
                     <option value="" disabled selected>Sélectionner...</option>
                     <option value="patient">Patient à domicile</option>
-                    <option value="pro">Professionnel de santé</option>
-                    <option value="ehpad">Structure (EHPAD, etc.)</option>
+                    <option value="Professionnel">Professionnel de santé</option>
                   </select>
                 </div>
               </div>
@@ -111,7 +114,6 @@
         </div>
         <h3>Connexion réussie !</h3>
         <p class="popup-text">Vous êtes identifié(e) en tant que :<br><strong class="text-cyan">{{ userRole }}</strong></p>
-        
         <button class="btn-gradient" @click="goToDashboard">Accéder à mon espace</button>
       </div>
     </div>
@@ -121,52 +123,86 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+import { API_URL } from '../config.js'
 
 const router = useRouter()
-const isLogin = ref(true)
+const route = useRoute()
+const isLogin = ref(route.query.mode !== 'signup')
 
-// Variables pour lire le mail et gérer la popup
 const loginEmail = ref('')
+const loginPassword = ref('')
+
+const registerNom = ref('')
+const registerEmail = ref('')
+const registerPassword = ref('')
+const registerSexe = ref('')
+const registerStatut = ref('')
+
 const showPopup = ref(false)
 const userRole = ref('')
 
-const goHome = () => {
-  router.push('/')
-}
+const goHome = () => router.push('/')
 
-const submitForm = () => {
+const submitForm = async () => {
   if (isLogin.value) {
-    // 1. On analyse l'adresse mail en minuscules
-    const emailToTest = loginEmail.value.toLowerCase()
-    
-    // 2. Conditions pour déterminer le rôle
-    if (emailToTest.includes('pro')) {
-      userRole.value = 'Professionnel de Santé'
-    } else if (emailToTest.includes('patient')) {
-      userRole.value = 'Patient'
-    } else {
-      userRole.value = 'Patient' // Rôle par défaut
-    }
-    
-    // 3. On affiche la Popup
-    showPopup.value = true
+    try {
+      const response = await fetch(`${API_URL}/utilisateurs/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: loginEmail.value,
+          motDePasse: loginPassword.value
+        })
+      })
+      const data = await response.json()
 
+      if (data.token) {
+        localStorage.setItem('token', data.token)
+        localStorage.setItem('email', data.email)
+        localStorage.setItem('nom', data.nom)
+        localStorage.setItem('statut', data.statut)
+        userRole.value = data.statut === 'Professionnel' ? 'Professionnel de Santé' : 'Patient'
+        showPopup.value = true
+      } else {
+        alert("Email ou mot de passe incorrect !")
+      }
+    } catch (error) {
+      alert("Erreur de connexion au serveur !")
+    }
   } else {
-    alert("Inscription réussie ! (Simulation)")
-    isLogin.value = true // Ramène à la connexion après inscription
+    try {
+      const response = await fetch(`${API_URL}/utilisateurs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nom: registerNom.value,
+          email: registerEmail.value,
+          motDePasse: registerPassword.value,
+          sexe: registerSexe.value,
+          statut: registerStatut.value
+        })
+      })
+      const data = await response.json()
+
+      if (data.id) {
+        alert("Inscription réussie ! Vous pouvez vous connecter.")
+        isLogin.value = true
+      } else {
+        alert("Erreur lors de l'inscription !")
+      }
+    } catch (error) {
+      alert("Erreur de connexion au serveur !")
+    }
   }
 }
 
-// REDIRECTION MODIFIÉE ICI :
 const goToDashboard = () => {
   showPopup.value = false
   if (userRole.value === 'Patient') {
-    // Redirige vers le tableau de bord patient
     router.push('/patient-dashboard')
   } else {
-    // Le tableau de bord Pro n'existe pas encore, on met une alerte
-    alert("Le tableau de bord Pro sera créé à la prochaine étape !")
+    router.push('/pro-dashboard')
   }
 }
 </script>
@@ -254,7 +290,8 @@ input[type="text"], input[type="email"], input[type="password"], select {
   font-size: 1rem; font-family: inherit; transition: all 0.3s; background-color: #F8FAFC;
 }
 input:focus, select:focus {
-  outline: none; border-color: #00B8D9; background-color: white; box-shadow: 0 0 0 4px rgba(0, 184, 217, 0.1);
+  outline: none; border-color: #00B8D9; background-color: white;
+  box-shadow: 0 0 0 4px rgba(0, 184, 217, 0.1);
 }
 
 .checkbox-group { margin-bottom: 30px; }
@@ -266,9 +303,12 @@ input:focus, select:focus {
 .custom-checkbox a { text-decoration: none; font-weight: 700; }
 
 .btn-gradient {
-  width: 100%; padding: 16px; background: linear-gradient(to right, #7DE2D1, #89D4E6);
-  color: #0A192F; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 800;
-  cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; margin-bottom: 20px;
+  width: 100%; padding: 16px;
+  background: linear-gradient(to right, #7DE2D1, #89D4E6);
+  color: #0A192F; border: none; border-radius: 12px;
+  font-size: 1.1rem; font-weight: 800;
+  cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+  margin-bottom: 20px;
 }
 .btn-gradient:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(125, 226, 209, 0.3); }
 
@@ -280,7 +320,6 @@ input:focus, select:focus {
 .fade-enter-from { opacity: 0; transform: translateY(10px); }
 .fade-leave-to { opacity: 0; transform: translateY(-10px); }
 
-/* ================= STYLES DE LA POPUP ================= */
 .popup-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(10,25,47,0.8);

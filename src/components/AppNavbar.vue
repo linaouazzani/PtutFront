@@ -16,7 +16,7 @@
       <router-link to="/auth" class="btn btn-outline-blue" style="text-decoration: none; display: inline-flex; align-items: center;">
         Connexion
       </router-link>
-      <router-link to="/auth" class="btn btn-solid-green" style="text-decoration: none; display: inline-flex; align-items: center;">
+      <router-link to="/auth?mode=signup" class="btn btn-solid-green" style="text-decoration: none; display: inline-flex; align-items: center;">
         S'INSCRIRE
       </router-link>
     </div>
